@@ -1,9 +1,11 @@
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '../../lib/utils';
 import { navItems } from '../../config/nav';
+import { useAuth } from '../../context/AuthContext';
 
 export default function Sidebar() {
     const location = useLocation();
+    const { user, signOut } = useAuth();
 
     return (
         <aside className="w-64 bg-white border-r border-slate-200 h-screen fixed left-0 top-0 flex flex-col hidden md:flex">
@@ -38,10 +40,17 @@ export default function Sidebar() {
 
             <div className="p-4 border-t border-slate-100">
                 <div className="flex items-center gap-3 px-3 py-2">
-                    <div className="w-8 h-8 rounded-full bg-slate-200" />
-                    <div className="text-sm">
-                        <p className="font-medium text-slate-700">User</p>
-                        <p className="text-xs text-slate-500">Free Plan</p>
+                    <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold">
+                        {user?.email?.charAt(0).toUpperCase() || 'U'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <p className="font-medium text-slate-700 text-sm truncate">{user?.email}</p>
+                        <button
+                            onClick={signOut}
+                            className="text-xs text-slate-500 hover:text-indigo-600 transition-colors"
+                        >
+                            Sign Out
+                        </button>
                     </div>
                 </div>
             </div>
