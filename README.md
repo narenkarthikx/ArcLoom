@@ -1,16 +1,68 @@
-# React + Vite
+# ArcLoom 🧶
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+**ArcLoom** is a unified personal productivity platform that weaves together your calendar, tasks, habits, and notes into a single, beautiful interface.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **📊 Dashboard**: At-a-glance view of your day, priority tasks, and habit streaks.
+- **📅 Calendar**: Scheduler to manage your events and meetings.
+- **✅ Tasks**: Task manager with smart prioritization and due dates.
+- **🔥 Habits**: Track your daily habits with heatmap visualization (GitHub style).
+- **📝 Notes**: Clean, distraction-free notes editor.
+- **🔐 Secure**: Full authentication powered by Supabase.
 
-## React Compiler
+## Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Frontend**: React, Vite, Tailwind CSS, Framer Motion
+- **Backend**: Supabase (PostgreSQL, Auth)
+- **Icons**: Lucide React
 
-## Expanding the ESLint configuration
+## Setup Guide
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### 1. Prerequisites
+- Node.js installed
+- A Supabase account
+
+### 2. Installation
+
+Clone the repo and install dependencies:
+
+```bash
+git clone https://github.com/narenkarthikx/ArcLoom.git
+cd ArcLoom
+npm install
+```
+
+### 3. Environment Variables
+
+Create a `.env.local` file in the root directory:
+
+```bash
+cp .env.example .env.local
+```
+
+Add your Supabase credentials to `.env.local`:
+
+```env
+VITE_SUPABASE_URL=your_project_url
+VITE_SUPABASE_ANON_KEY=your_anon_key
+```
+
+### 4. Database Setup
+
+1. Go to your **Supabase Dashboard** -> **SQL Editor**.
+2. Open the `supabase_schema.sql` file located in this project.
+3. Copy the entire content and paste it into the SQL Editor.
+4. Click **Run** to create all tables (`tasks`, `habits`, `habit_logs`, `notes`, `events`) and RLS policies.
+
+### 5. Run the App
+
+```bash
+npm run dev
+```
+
+Open your browser to the local URL (usually `http://localhost:5173`).
+
+## License
+
+MIT
