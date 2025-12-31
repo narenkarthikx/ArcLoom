@@ -1,19 +1,18 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Plus, Flame, Trash2, CheckCircle2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Plus, Check, User, Heart, Sun, Sunset, Moon } from 'lucide-react';
 import { api } from '../lib/api';
-import { format, subDays, isSameDay, eachDayOfInterval, startOfMonth, endOfMonth, getDay } from 'date-fns';
+import { format, subDays, isSameDay } from 'date-fns';
 import { supabase } from '../lib/supabaseClient';
 
 export default function HabitsPage() {
     const [habits, setHabits] = useState([]);
     const [habitLogs, setHabitLogs] = useState({});
     const [newHabit, setNewHabit] = useState('');
+    const [identity, setIdentity] = useState('');
+    const [timeAnchor, setTimeAnchor] = useState('anytime');
+    const [showAdd, setShowAdd] = useState(false);
     const [loading, setLoading] = useState(true);
-
-    // Stats
-    const [totalCompletions, setTotalCompletions] = useState(0);
-    const [currentStreak, setCurrentStreak] = useState(0);
 
     useEffect(() => {
         loadData();
@@ -23,29 +22,17 @@ export default function HabitsPage() {
         try {
             const habitsData = await api.habits.list();
             setHabits(habitsData);
+            const logsData = await api.getHabitLogs();
 
-            // Fetch logs for the last 365 days? Or just current month for now to keep it light
-            // For MVP let's fetch all relevant logs
-            // In a real app we'd paginate or filter by date range
-            const { data: logsData, error } = await supabase
-                .from('habit_logs')
-                .select('*');
-
-            if (error) throw error;
-
-            // Group logs by habit_id
             const logsMap = {};
             logsData.forEach(log => {
+                const date = new Date(log.completed_date);
                 if (!logsMap[log.habit_id]) logsMap[log.habit_id] = [];
-                logsMap[log.habit_id].push(new Date(log.completed_date));
+                logsMap[log.habit_id].push(date);
             });
             setHabitLogs(logsMap);
-
-            // Calc stats
-            setTotalCompletions(logsData.length);
-            // Rough streak calc (global) not implemented yet, just total counts
         } catch (error) {
-            console.error('Error loading habits:', error);
+            console.error(error);
         } finally {
             setLoading(false);
         }
@@ -56,21 +43,27 @@ export default function HabitsPage() {
         if (!newHabit.trim()) return;
 
         try {
-            // Pick a random color for the habit
-            const colors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899'];
+            const colors = ['#f43f5e', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#6366f1', '#8b5cf6', '#ec4899'];
             const randomColor = colors[Math.floor(Math.random() * colors.length)];
 
             const { data, error } = await supabase
                 .from('habits')
-                .insert([{ name: newHabit, color: randomColor, user_id: (await supabase.auth.getUser()).data.user.id }])
+                .insert([{
+                    name: newHabit,
+                    color: randomColor,
+                    user_id: (await supabase.auth.getUser()).data.user.id,
+                    identity: identity || 'someone who improves daily',
+                    time_anchor: timeAnchor
+                }])
                 .select()
                 .single();
 
             if (error) throw error;
             setHabits([data, ...habits]);
-            setNewHabit('');
+            setNewHabit(''); setIdentity('');
+            setShowAdd(false);
         } catch (error) {
-            console.error('Error adding habit:', error);
+            console.error(error);
         }
     };
 
@@ -81,148 +74,198 @@ export default function HabitsPage() {
 
         try {
             if (isCompleted) {
-                // Remove completion
-                await supabase
-                    .from('habit_logs')
-                    .delete()
-                    .match({ habit_id: habitId, completed_date: dateStr });
-
-                setHabitLogs({
-                    ...habitLogs,
-                    [habitId]: logs.filter(d => !isSameDay(d, date))
-                });
-                setTotalCompletions(prev => prev - 1);
+                setHabitLogs({ ...habitLogs, [habitId]: logs.filter(d => !isSameDay(d, date)) });
+                await supabase.from('habit_logs').delete().match({ habit_id: habitId, completed_date: dateStr });
             } else {
-                // Add completion
-                await supabase
-                    .from('habit_logs')
-                    .insert([{ habit_id: habitId, completed_date: dateStr }]);
-
-                setHabitLogs({
-                    ...habitLogs,
-                    [habitId]: [...logs, date]
-                });
-                setTotalCompletions(prev => prev + 1);
+                setHabitLogs({ ...habitLogs, [habitId]: [...logs, date] });
+                await supabase.from('habit_logs').insert([{ habit_id: habitId, completed_date: dateStr }]);
             }
         } catch (error) {
-            console.error('Error toggling habit:', error);
+            console.error(error);
+            loadData();
         }
     };
-
-    const deleteHabit = async (id) => {
-        if (!confirm('Are you sure? All history for this habit will be lost.')) return;
-        try {
-            await supabase.from('habits').delete().eq('id', id);
-            setHabits(habits.filter(h => h.id !== id));
-            const newLogs = { ...habitLogs };
-            delete newLogs[id];
-            setHabitLogs(newLogs);
-        } catch (error) {
-            console.error('Error deleting habit:', error);
-        }
-    };
-
-    // Generate last 7 days for the weekly view
-    const last7Days = Array.from({ length: 7 }, (_, i) => subDays(new Date(), 6 - i));
 
     return (
-        <div className="max-w-5xl mx-auto space-y-8">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-2xl font-bold text-slate-800">Habit Tracker</h1>
-                    <p className="text-slate-500">Build consistency, one day at a time</p>
-                </div>
-                <div className="flex gap-4">
-                    <div className="px-4 py-2 bg-indigo-50 text-indigo-700 rounded-lg flex items-center gap-2">
-                        <CheckCircle2 size={18} />
-                        <span className="font-semibold">{totalCompletions}</span>
-                        <span className="text-xs opacity-70">Total completions</span>
+        <div className="max-w-4xl mx-auto space-y-12 pb-20">
+            {/* Header */}
+            <div>
+                <h1 className="text-4xl font-black text-slate-100 mb-2">Consistency Lab</h1>
+                <p className="text-slate-400 font-medium text-lg">Build the identity of the person you want to become.</p>
+            </div>
+
+            {/* Quick Add Fab */}
+            {!showAdd && (
+                <button
+                    onClick={() => setShowAdd(true)}
+                    className="group flex items-center gap-3 text-lg font-bold text-slate-400 hover:text-indigo-400 transition-colors"
+                >
+                    <div className="w-10 h-10 rounded-full bg-white/5 group-hover:bg-indigo-500/20 border border-white/5 flex items-center justify-center transition-colors">
+                        <Plus size={24} />
                     </div>
-                </div>
-            </div>
+                    Design new habit
+                </button>
+            )}
 
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-                <form onSubmit={handleAddHabit} className="flex gap-4">
-                    <input
-                        type="text"
-                        value={newHabit}
-                        onChange={(e) => setNewHabit(e.target.value)}
-                        placeholder="New habit (e.g., Read 30 mins)"
-                        className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
-                    />
-                    <button
-                        type="submit"
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl font-medium transition-colors flex items-center gap-2"
-                    >
-                        <Plus size={20} />
-                        Add Habit
-                    </button>
-                </form>
-            </div>
-
-            <div className="space-y-4">
-                {habits.map((habit, index) => (
-                    <motion.div
-                        key={habit.id}
-                        initial={{ opacity: 0, y: 10 }}
+            {/* Add Panel */}
+            <AnimatePresence>
+                {showAdd && (
+                    <motion.form
+                        initial={{ opacity: 0, y: -20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.05 }}
-                        className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row items-start md:items-center gap-6"
+                        exit={{ opacity: 0, y: -20 }}
+                        onSubmit={handleAddHabit}
+                        className="bg-slate-900/60 backdrop-blur-xl p-8 rounded-[2rem] text-white shadow-2xl border border-white/5 relative overflow-hidden"
                     >
-                        <div className="flex-1 min-w-[200px]">
-                            <div className="flex items-center gap-3 mb-1">
-                                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: habit.color }} />
-                                <h3 className="font-semibold text-slate-800">{habit.name}</h3>
+                        <h3 className="text-xl font-bold mb-6 text-slate-200">Habit Design Protocol</h3>
+                        <div className="space-y-6 relative z-10">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label className="text-xs font-bold uppercase text-slate-500 tracking-wider mb-2 block">Action</label>
+                                    <input
+                                        autoFocus
+                                        type="text"
+                                        value={newHabit}
+                                        onChange={e => setNewHabit(e.target.value)}
+                                        placeholder="e.g. Read 10 pages"
+                                        className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-600 font-bold focus:ring-2 focus:ring-indigo-500 outline-none"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold uppercase text-slate-500 tracking-wider mb-2 block">Identity (Who does this?)</label>
+                                    <input
+                                        type="text"
+                                        value={identity}
+                                        onChange={e => setIdentity(e.target.value)}
+                                        placeholder="I am a reader..."
+                                        className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-600 font-medium focus:ring-2 focus:ring-indigo-500 outline-none"
+                                    />
+                                </div>
                             </div>
-                            <button
-                                onClick={() => deleteHabit(habit.id)}
-                                className="text-xs text-slate-400 hover:text-rose-500 flex items-center gap-1 mt-1 transition-colors"
-                            >
-                                <Trash2 size={12} /> Delete
-                            </button>
+
+                            <div>
+                                <label className="text-xs font-bold uppercase text-slate-500 tracking-wider mb-2 block">Time Anchor</label>
+                                <div className="flex gap-2">
+                                    {['morning', 'afternoon', 'evening', 'anytime'].map((t) => (
+                                        <button
+                                            key={t}
+                                            type="button"
+                                            onClick={() => setTimeAnchor(t)}
+                                            className={`px-4 py-2 rounded-lg text-sm font-bold capitalize transition-all border ${timeAnchor === t
+                                                ? 'bg-indigo-600 border-indigo-600 text-white'
+                                                : 'bg-white/5 border-white/5 text-slate-400 hover:bg-white/10'
+                                                }`}
+                                        >
+                                            {t}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end gap-4 mt-4">
+                                <button type="button" onClick={() => setShowAdd(false)} className="px-6 py-2 text-slate-400 font-bold hover:text-white">Cancel</button>
+                                <button type="submit" className="px-8 py-3 bg-white text-slate-900 rounded-xl font-black hover:bg-indigo-50 transition-colors">Initialize Habit</button>
+                            </div>
                         </div>
-
-                        <div className="flex items-center gap-2 flex-wrap">
-                            {last7Days.map((date) => {
-                                const isCompleted = habitLogs[habit.id]?.some(logDate => isSameDay(logDate, date));
-                                const isToday = isSameDay(date, new Date());
-
-                                return (
-                                    <button
-                                        key={date.toISOString()}
-                                        onClick={() => toggleHabit(habit.id, date)}
-                                        className={`
-                                    w-10 h-10 rounded-lg flex flex-col items-center justify-center border transition-all relative
-                                    ${isCompleted
-                                                ? `bg-opacity-10 text-white border-transparent`
-                                                : 'bg-slate-50 border-slate-100 hover:border-slate-300 text-slate-400'
-                                            }
-                                    ${isToday ? 'ring-2 ring-offset-2 ring-indigo-100' : ''}
-                                `}
-                                        style={{
-                                            backgroundColor: isCompleted ? habit.color : undefined,
-                                        }}
-                                    >
-                                        <span className={`text-[10px] font-bold ${isCompleted ? 'text-white' : 'text-slate-500'}`}>
-                                            {format(date, 'EEE')}
-                                        </span>
-                                        {isCompleted && (
-                                            <CheckCircle2 size={14} className="text-white mt-0.5" />
-                                        )}
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </motion.div>
-                ))}
-
-                {habits.length === 0 && !loading && (
-                    <div className="text-center py-12 text-slate-400">
-                        <Flame size={40} className="mx-auto mb-3 opacity-20" />
-                        <p>Start your first streak today!</p>
-                    </div>
+                    </motion.form>
                 )}
+            </AnimatePresence>
+
+            {/* Habits List */}
+            <div className="space-y-6">
+                {habits.map((habit, idx) => (
+                    <HabitCard
+                        key={habit.id}
+                        habit={habit}
+                        logs={habitLogs[habit.id] || []}
+                        toggle={toggleHabit}
+                    />
+                ))}
             </div>
         </div>
+    );
+}
+
+function HabitCard({ habit, logs, toggle }) {
+    // 7 Day view
+    const days = Array.from({ length: 7 }, (_, i) => subDays(new Date(), 6 - i));
+
+    // Checks for missed yesterday
+    const yesterday = subDays(new Date(), 1);
+    const missedYesterday = !logs.some(d => isSameDay(d, yesterday));
+    const doneToday = logs.some(d => isSameDay(d, new Date()));
+
+    const getAnchorIcon = (anchor) => {
+        if (anchor === 'morning') return <Sun size={14} className="text-amber-400" />;
+        if (anchor === 'afternoon') return <Sun size={14} className="text-orange-400" />;
+        if (anchor === 'evening') return <Sunset size={14} className="text-indigo-400" />;
+        return <Moon size={14} className="text-slate-400" />;
+    };
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-slate-900/40 backdrop-blur-md p-6 md:p-8 rounded-[2rem] shadow-sm border border-white/5 relative overflow-hidden group hover:border-white/10 transition-colors"
+        >
+            <div className="flex flex-col md:flex-row gap-8 relative z-10">
+
+                {/* Identity & Info */}
+                <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                        <div className="w-8 h-8 rounded-full bg-white/5 border border-white/5 flex items-center justify-center">
+                            {getAnchorIcon(habit.time_anchor)}
+                        </div>
+                        <span className="text-xs font-bold uppercase tracking-wider text-slate-400 bg-white/5 px-2 py-1 rounded-md border border-white/5">
+                            {habit.time_anchor || 'Anytime'}
+                        </span>
+                    </div>
+
+                    <h2 className="text-2xl font-black text-slate-200 mb-1">{habit.name}</h2>
+                    <p className="text-slate-500 font-medium italic flex items-center gap-2">
+                        <User size={14} />
+                        {habit.identity || "Identity not set"}
+                    </p>
+
+                    {/* Compassion Mode Message */}
+                    {missedYesterday && !doneToday && (
+                        <div className="mt-4 flex items-center gap-2 text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 px-3 py-2 rounded-xl text-xs font-bold max-w-max">
+                            <Heart size={14} fill="currentColor" />
+                            You missed yesterday. Resume today — streak is still alive.
+                        </div>
+                    )}
+                </div>
+
+                {/* Tracking Grid */}
+                <div>
+                    <div className="flex gap-2">
+                        {days.map(date => {
+                            const isDone = logs.some(d => isSameDay(d, date));
+                            const isToday = isSameDay(date, new Date());
+                            return (
+                                <button
+                                    key={date.toString()}
+                                    onClick={() => toggle(habit.id, date)}
+                                    className={`
+                                        w-10 h-12 rounded-xl flex items-center justify-center border-2 transition-all
+                                        ${isDone
+                                            ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-900/50'
+                                            : 'bg-white/5 border-white/5 text-slate-600 hover:border-indigo-500/50'
+                                        }
+                                        ${isToday ? 'scale-110 mx-1 border-slate-500' : ''}
+                                    `}
+                                >
+                                    {isDone && <Check size={18} strokeWidth={4} />}
+                                </button>
+                            )
+                        })}
+                    </div>
+                    <p className="text-right text-xs font-bold text-slate-500 mt-2 uppercase tracking-wider">
+                        Last 7 Days
+                    </p>
+                </div>
+
+            </div>
+        </motion.div>
     );
 }

@@ -117,5 +117,67 @@ export const api = {
                 .eq('id', id);
             if (error) throw error;
         }
+    },
+    // Specific helper for fetching raw logs for dashboard heatmap
+    async getHabitLogs() {
+        const { data, error } = await supabase.from('habit_logs').select('*, habits(color, name)');
+        if (error) throw error;
+        return data;
+    },
+
+    // --- INNOVATION LAYER APIS ---
+
+    dailyMetrics: {
+        async get(date) {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return null;
+
+            const { data, error } = await supabase
+                .from('daily_metrics')
+                .select('*')
+                .eq('date', date)
+                .maybeSingle();
+
+            if (error && error.code !== 'PGRST116') console.error(error); // ignore not found
+            return data;
+        },
+        async upsert(metrics) {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error('User not authenticated');
+
+            const { data, error } = await supabase
+                .from('daily_metrics')
+                .upsert({ ...metrics, user_id: user.id }, { onConflict: 'user_id, date' })
+                .select()
+                .single();
+            if (error) throw error;
+            return data;
+        }
+    },
+    reflections: {
+        async list() {
+            const { data, error } = await supabase.from('reflections').select('*').order('date', { ascending: false });
+            if (error) throw error;
+            return data;
+        },
+        async create(reflection) {
+            const { data: { user } } = await supabase.auth.getUser();
+            const { data, error } = await supabase.from('reflections').insert([{ ...reflection, user_id: user.id }]).select().single();
+            if (error) throw error;
+            return data;
+        }
+    },
+    taskLinks: {
+        async list() {
+            const { data, error } = await supabase.from('task_links').select('*');
+            if (error) throw error;
+            return data;
+        },
+        async create(link) {
+            const { data: { user } } = await supabase.auth.getUser();
+            const { data, error } = await supabase.from('task_links').insert([{ ...link, user_id: user.id }]).select().single();
+            if (error) throw error;
+            return data;
+        }
     }
 };

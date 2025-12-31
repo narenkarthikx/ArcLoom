@@ -1,58 +1,67 @@
 import { Link, useLocation } from 'react-router-dom';
-import { cn } from '../../lib/utils';
-import { navItems } from '../../config/nav';
+import { LayoutDashboard, Calendar, CheckCircle2, Flame, BookOpen, LogOut } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 export default function Sidebar() {
     const location = useLocation();
-    const { user, signOut } = useAuth();
+    const { signOut } = useAuth();
+
+    const links = [
+        { name: 'Dashboard', path: '/', icon: LayoutDashboard },
+        { name: 'Calendar', path: '/calendar', icon: Calendar },
+        { name: 'Tasks', path: '/tasks', icon: CheckCircle2 },
+        { name: 'Habits', path: '/habits', icon: Flame },
+        { name: 'Notes', path: '/notes', icon: BookOpen },
+    ];
+
+    const isActive = (path) => {
+        if (path === '/' && location.pathname === '/') return true;
+        if (path !== '/' && location.pathname.startsWith(path)) return true;
+        return false;
+    };
 
     return (
-        <aside className="w-64 bg-white border-r border-slate-200 h-screen fixed left-0 top-0 flex flex-col hidden md:flex">
-            <div className="h-16 flex items-center px-6 border-b border-slate-100">
-                <h1 className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">
+        <aside className="fixed left-0 top-0 h-screen w-64 bg-slate-900/60 backdrop-blur-2xl border-r border-white/10 flex flex-col z-50">
+            <div className="p-6">
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent filter drop-shadow-[0_0_10px_rgba(99,102,241,0.3)]">
                     ArcLoom
                 </h1>
+                <p className="text-xs text-slate-500 mt-1 font-medium tracking-wide">WEAVE YOUR DESTINY</p>
             </div>
 
-            <nav className="flex-1 py-6 px-3 space-y-1">
-                {navItems.map((item) => {
-                    const Icon = item.icon;
-                    const isActive = location.pathname === item.path;
-
+            <nav className="flex-1 px-3 space-y-1 mt-4">
+                {links.map((link) => {
+                    const active = isActive(link.path);
                     return (
                         <Link
-                            key={item.path}
-                            to={item.path}
-                            className={cn(
-                                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
-                                isActive
-                                    ? "bg-indigo-50 text-indigo-700"
-                                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                            )}
+                            key={link.path}
+                            to={link.path}
+                            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group relative overflow-hidden ${active
+                                    ? 'bg-indigo-600/10 text-indigo-300 border border-indigo-500/20'
+                                    : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
+                                }`}
                         >
-                            <Icon className="w-5 h-5" />
-                            {item.name}
+                            {active && (
+                                <div className="absolute inset-0 bg-indigo-400/5 blur-xl"></div>
+                            )}
+                            <link.icon size={20} className={`relative z-10 transition-colors ${active ? 'text-indigo-400 drop-shadow-[0_0_8px_rgba(99,102,241,0.5)]' : 'group-hover:text-indigo-300'}`} />
+                            <span className="relative z-10 font-medium">{link.name}</span>
+                            {active && (
+                                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-indigo-400 shadow-[0_0_8px_currentColor]" />
+                            )}
                         </Link>
-                    );
+                    )
                 })}
             </nav>
 
-            <div className="p-4 border-t border-slate-100">
-                <div className="flex items-center gap-3 px-3 py-2">
-                    <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold">
-                        {user?.email?.charAt(0).toUpperCase() || 'U'}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <p className="font-medium text-slate-700 text-sm truncate">{user?.email}</p>
-                        <button
-                            onClick={signOut}
-                            className="text-xs text-slate-500 hover:text-indigo-600 transition-colors"
-                        >
-                            Sign Out
-                        </button>
-                    </div>
-                </div>
+            <div className="p-4 border-t border-white/10 space-y-2 bg-slate-900/20">
+                <button
+                    onClick={signOut}
+                    className="flex w-full items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors border border-transparent hover:border-rose-500/20"
+                >
+                    <LogOut size={20} />
+                    <span className="font-medium">Sign Out</span>
+                </button>
             </div>
         </aside>
     );
