@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Check, Sparkles, Sun, Moon, Sunset, Cloud, X } from 'lucide-react';
+import { Plus, Check, Sparkles, Sun, Moon, Sunset, Cloud, X, ArrowRight } from 'lucide-react';
 import { api } from '../lib/api';
-import { format, subDays, isSameDay } from 'date-fns';
+import { format, isSameDay } from 'date-fns';
 import { supabase } from '../lib/supabaseClient';
 
 export default function HabitsPage() {
     const [habits, setHabits] = useState([]);
     const [habitLogs, setHabitLogs] = useState({});
+    const [dailyLog, setDailyLog] = useState(null);
     const [loading, setLoading] = useState(true);
 
     // Form State
@@ -21,9 +22,16 @@ export default function HabitsPage() {
 
     const loadData = async () => {
         try {
-            const habitsData = await api.habits.list();
+            await api.dailyLog.ensureToday();
+
+            const [habitsData, logsData, todayLog] = await Promise.all([
+                api.habits.list(),
+                api.getHabitLogs(),
+                api.dailyLog.getToday()
+            ]);
+
             setHabits(habitsData);
-            const logsData = await api.getHabitLogs();
+            setDailyLog(todayLog);
 
             const logsMap = {};
             logsData.forEach(log => {
@@ -44,14 +52,13 @@ export default function HabitsPage() {
         if (!newHabit.trim()) return;
 
         try {
-            // Simplified "Identity" for now to reduce friction, can be added back if needed or defaulted
             const { data, error } = await supabase
                 .from('habits')
                 .insert([{
                     name: newHabit,
-                    color: '#6366f1', // Default calm indigo
+                    color: '#6366f1',
                     user_id: (await supabase.auth.getUser()).data.user.id,
-                    identity: 'a consistent person', // Default
+                    identity: 'consistent',
                     time_anchor: timeContext
                 }])
                 .select()
@@ -71,12 +78,16 @@ export default function HabitsPage() {
         const logs = habitLogs[habitId] || [];
         const isCompleted = logs.some(d => isSameDay(d, date));
 
-        // Optimistic update
+        // Optimistic update for UI
         let newLogs;
         if (isCompleted) {
             newLogs = logs.filter(d => !isSameDay(d, date));
+            // Decrement daily log locally
+            setDailyLog(prev => ({ ...prev, habits_done: Math.max(0, (prev?.habits_done || 0) - 1) }));
         } else {
             newLogs = [...logs, date];
+            // Increment daily log locally
+            setDailyLog(prev => ({ ...prev, habits_done: (prev?.habits_done || 0) + 1 }));
         }
         setHabitLogs({ ...habitLogs, [habitId]: newLogs });
 
@@ -92,20 +103,34 @@ export default function HabitsPage() {
         }
     };
 
+    // Time of day greeting
+    const hour = new Date().getHours();
+    const greeting = hour < 12 ? 'Good Morning' : hour < 18 ? 'Good Afternoon' : 'Good Evening';
+
     return (
         <div className="max-w-2xl mx-auto space-y-10 pb-32">
-            {/* Soft Header */}
-            <div className="flex items-end justify-between px-2">
-                <div>
-                    <h1 className="text-3xl font-medium text-slate-100 mb-1">Daily Rituals</h1>
-                    <p className="text-slate-400 text-sm">Small actions, repeated.</p>
+
+            {/* Day-Centric Header */}
+            <div className="bg-slate-900/40 p-8 rounded-[2rem] border border-white/5 relative overflow-hidden">
+                <div className="relative z-10">
+                    <h1 className="text-3xl font-medium text-slate-100 mb-2">{greeting}, Naren.</h1>
+                    <div className="flex items-center gap-3 text-slate-400">
+                        <span className="text-3xl font-bold text-indigo-400">{dailyLog?.habits_done || 0}</span>
+                        <span className="text-sm font-medium leading-tight">rituals completed<br />today.</span>
+                    </div>
                 </div>
+                {/* Subtle decorative background gradient */}
+                <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/3 pointer-events-none" />
+            </div>
+
+            <div className="flex items-center justify-between px-4">
+                <h2 className="text-sm font-bold uppercase tracking-widest text-slate-500">Your Flow</h2>
                 {!showAdd && (
                     <button
                         onClick={() => setShowAdd(true)}
-                        className="w-10 h-10 rounded-full bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 flex items-center justify-center transition-all"
+                        className="flex items-center gap-2 text-sm font-bold text-indigo-400 hover:text-indigo-300 transition-colors"
                     >
-                        <Plus size={20} />
+                        <Plus size={16} /> New Ritual
                     </button>
                 )}
             </div>
@@ -119,9 +144,9 @@ export default function HabitsPage() {
                         exit={{ opacity: 0, height: 0 }}
                         className="overflow-hidden"
                     >
-                        <form onSubmit={handleAddHabit} className="bg-slate-900/80 backdrop-blur-xl p-6 rounded-[2rem] border border-white/5 space-y-6">
+                        <form onSubmit={handleAddHabit} className="bg-slate-900/80 backdrop-blur-xl p-6 rounded-[2rem] border border-white/5 space-y-6 mb-8">
                             <div className="flex justify-between items-center text-slate-400">
-                                <span className="text-xs font-bold uppercase tracking-widest">New Ritual</span>
+                                <span className="text-xs font-bold uppercase tracking-widest">Design New Ritual</span>
                                 <button type="button" onClick={() => setShowAdd(false)}><X size={18} /></button>
                             </div>
 
@@ -130,8 +155,8 @@ export default function HabitsPage() {
                                 type="text"
                                 value={newHabit}
                                 onChange={e => setNewHabit(e.target.value)}
-                                placeholder="I want to..."
-                                className="w-full bg-transparent text-2xl font-medium text-slate-100 placeholder:text-slate-600 outline-none"
+                                placeholder="What is the action?"
+                                className="w-full bg-transparent text-xl font-medium text-slate-100 placeholder:text-slate-600 outline-none"
                             />
 
                             <div className="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar">
@@ -150,22 +175,20 @@ export default function HabitsPage() {
                                 ))}
                             </div>
 
-                            <div className="pt-2">
-                                <button
-                                    type="submit"
-                                    disabled={!newHabit.trim()}
-                                    className="w-full py-4 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-200 rounded-2xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    Begin
-                                </button>
-                            </div>
+                            <button
+                                type="submit"
+                                disabled={!newHabit.trim()}
+                                className="w-full py-4 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-200 rounded-2xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Commit to Layout
+                            </button>
                         </form>
                     </motion.div>
                 )}
             </AnimatePresence>
 
-            {/* Habits Stream */}
-            <div className="space-y-4">
+            {/* Habits Stream - Clean List */}
+            <div className="space-y-3">
                 {habits.map(habit => (
                     <HabitItem
                         key={habit.id}
@@ -178,8 +201,7 @@ export default function HabitsPage() {
                 {habits.length === 0 && !loading && (
                     <div className="text-center py-20 text-slate-500 font-light">
                         <Sparkles className="mx-auto mb-4 opacity-20" size={48} />
-                        <p>No rituals yet.</p>
-                        <button onClick={() => setShowAdd(true)} className="mt-4 text-indigo-400 hover:text-indigo-300 underline underline-offset-4 decoration-indigo-400/30">Start one?</button>
+                        <p>No rituals set for today.</p>
                     </div>
                 )}
             </div>
@@ -190,9 +212,6 @@ export default function HabitsPage() {
 function HabitItem({ habit, logs, toggle }) {
     const today = new Date();
     const isDoneToday = logs.some(d => isSameDay(d, today));
-
-    // Last 5 days for context (excluding today)
-    const recentHistory = Array.from({ length: 5 }, (_, i) => subDays(today, 5 - i));
 
     const getTimeIcon = (time) => {
         switch (time) {
@@ -209,84 +228,48 @@ function HabitItem({ habit, logs, toggle }) {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             className={`
-                group relative overflow-hidden rounded-[2rem] p-1 transition-all duration-500
-                ${isDoneToday ? 'bg-slate-800/40' : 'bg-slate-900/40'}
+                group relative overflow-hidden rounded-2xl transition-all duration-500
+                ${isDoneToday ? 'bg-slate-900/20 py-4 px-6 opacity-60' : 'bg-slate-900/60 py-6 px-6'}
+                border border-white/5
             `}
         >
-            <div className="relative z-10 flex items-center justify-between p-4 px-6 gap-4">
+            <div className="relative z-10 flex items-center justify-between gap-4">
 
                 {/* Info */}
-                <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1 opacity-60">
-                        {getTimeIcon(habit.time_anchor)}
-                        <span className="text-[10px] uppercase tracking-widest font-bold text-slate-400">
-                            {habit.time_anchor}
-                        </span>
-                    </div>
-                    <h3 className={`text-lg font-medium truncate transition-colors duration-500 ${isDoneToday ? 'text-slate-500 line-through decoration-slate-600' : 'text-slate-200'}`}>
-                        {habit.name}
-                    </h3>
-                </div>
-
-                {/* Right Side: Action & History */}
-                <div className="flex items-center gap-6">
-
-                    {/* Subtle History Dots */}
-                    <div className="hidden sm:flex gap-1.5 opacity-40">
-                        {recentHistory.map(day => {
-                            const isDone = logs.some(l => isSameDay(l, day));
-                            return (
-                                <div
-                                    key={day.toString()}
-                                    className={`w-1.5 h-1.5 rounded-full transition-all ${isDone ? 'bg-indigo-400' : 'bg-slate-700'}`}
-                                    title={format(day, 'MMM d')}
-                                />
-                            );
-                        })}
-                    </div>
-
-                    {/* Main Action */}
+                <div className="flex-1 min-w-0 flex items-center gap-4">
                     <button
                         onClick={() => toggle(habit.id, today)}
                         className={`
-                            relative w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-500
+                            w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all duration-300
                             ${isDoneToday
-                                ? 'bg-indigo-500 text-white shadow-[0_0_30px_-5px_rgba(99,102,241,0.4)]'
-                                : 'bg-slate-800 hover:bg-slate-700 text-slate-500 hover:text-slate-300'
+                                ? 'bg-indigo-500 border-indigo-500 text-white'
+                                : 'border-slate-600 text-transparent hover:border-indigo-400'
                             }
                         `}
                     >
-                        <AnimatePresence mode='wait'>
-                            {isDoneToday ? (
-                                <motion.div
-                                    key="check"
-                                    initial={{ scale: 0.5, rotate: -20, opacity: 0 }}
-                                    animate={{ scale: 1, rotate: 0, opacity: 1 }}
-                                    exit={{ scale: 0.5, rotate: 20, opacity: 0 }}
-                                >
-                                    <Check size={28} strokeWidth={3} />
-                                </motion.div>
-                            ) : (
-                                <motion.div
-                                    key="empty"
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    exit={{ opacity: 0 }}
-                                    className="w-4 h-4 rounded-full border-2 border-current opacity-50"
-                                />
-                            )}
-                        </AnimatePresence>
+                        <Check size={16} strokeWidth={4} />
                     </button>
-                </div>
-            </div>
 
-            {/* Ambient Glow for Done State */}
-            <div
-                className={`
-                    absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-transparent pointer-events-none transition-opacity duration-700
-                    ${isDoneToday ? 'opacity-100' : 'opacity-0'}
-                `}
-            />
+                    <div>
+                        <div className="flex items-center gap-2 mb-0.5 opacity-60">
+                            {getTimeIcon(habit.time_anchor)}
+                            <span className="text-[10px] uppercase tracking-widest font-bold text-slate-400">
+                                {habit.time_anchor}
+                            </span>
+                        </div>
+                        <h3 className={`text-lg font-medium truncate transition-colors duration-500 ${isDoneToday ? 'text-slate-500 line-through decoration-slate-700' : 'text-slate-200'}`}>
+                            {habit.name}
+                        </h3>
+                    </div>
+                </div>
+
+                {/* Right Side: Simple visual anchor */}
+                {!isDoneToday && (
+                    <div className="text-slate-600">
+                        <ArrowRight size={16} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </div>
+                )}
+            </div>
         </motion.div>
     );
 }

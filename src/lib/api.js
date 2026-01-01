@@ -127,6 +127,34 @@ export const api = {
 
     // --- INNOVATION LAYER APIS ---
 
+    // Unified Daily Log (The "Life Diary" core)
+    dailyLog: {
+        async ensureToday() {
+            // Attempt to ensure row exists via RPC
+            const { error } = await supabase.rpc('ensure_today_log');
+            if (error) {
+                // Fallback if RPC doesn't exist yet (for safety during migration)
+                const today = new Date().toISOString().split('T')[0];
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                    await supabase.from('daily_log').insert([{ user_id: user.id, date: today }]).select();
+                }
+            }
+        },
+        async getToday() {
+            const today = new Date().toISOString().split('T')[0];
+            const { data, error } = await supabase
+                .from('daily_log')
+                .select('*')
+                .eq('date', today)
+                .maybeSingle();
+            if (error) console.error("Error fetching daily log:", error);
+            return data;
+        }
+    },
+
+    // --- INNOVATION LAYER APIS ---
+
     dailyMetrics: {
         async get(date) {
             const { data: { user } } = await supabase.auth.getUser();

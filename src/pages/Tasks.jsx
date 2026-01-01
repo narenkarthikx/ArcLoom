@@ -1,22 +1,30 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, Trash2, Zap, Battery, BatteryMedium, BatteryLow, AlertCircle } from 'lucide-react';
+import { Check, Trash2, Zap, Battery, BatteryMedium, BatteryLow, AlertCircle, Sparkles } from 'lucide-react';
 import { api } from '../lib/api';
 
 export default function TasksPage() {
     const [tasks, setTasks] = useState([]);
+    const [dailyLog, setDailyLog] = useState(null);
     const [newTask, setNewTask] = useState('');
     const [energyLevel, setEnergyLevel] = useState('focus'); // focus, light, admin
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        loadTasks();
+        loadData();
     }, []);
 
-    const loadTasks = async () => {
+    const loadData = async () => {
         try {
-            const data = await api.tasks.list();
-            setTasks(data);
+            await api.dailyLog.ensureToday();
+
+            const [tasksData, todayLog] = await Promise.all([
+                api.tasks.list(),
+                api.dailyLog.getToday()
+            ]);
+
+            setTasks(tasksData);
+            setDailyLog(todayLog);
         } catch (error) {
             console.error(error);
         } finally {
@@ -32,7 +40,7 @@ export default function TasksPage() {
             const task = await api.tasks.create({
                 title: newTask,
                 energy_level: energyLevel,
-                priority: 'medium', // Defaulting for now
+                priority: 'medium',
                 is_completed: false,
                 postponed_count: 0,
                 due_date: new Date().toISOString()
@@ -47,11 +55,19 @@ export default function TasksPage() {
     const toggleTask = async (id, currentStatus) => {
         // Optimistic update
         setTasks(tasks.map(t => t.id === id ? { ...t, is_completed: !currentStatus } : t));
+
+        // Optimistic Daily Log Update if completing
+        if (!currentStatus) {
+            setDailyLog(prev => ({ ...prev, tasks_done: (prev?.tasks_done || 0) + 1 }));
+        } else {
+            setDailyLog(prev => ({ ...prev, tasks_done: Math.max(0, (prev?.tasks_done || 0) - 1) }));
+        }
+
         try {
             await api.tasks.update(id, { is_completed: !currentStatus });
         } catch (error) {
             console.error(error);
-            loadTasks();
+            loadData();
         }
     };
 
@@ -74,40 +90,44 @@ export default function TasksPage() {
     return (
         <div className="max-w-6xl mx-auto min-h-[calc(100vh-6rem)] pb-20">
 
-            {/* Header / Insight */}
-            <div className="mb-10">
-                <h1 className="text-4xl font-black text-slate-100 mb-2">Execution Engine</h1>
-                <p className="text-slate-400 font-medium text-lg">Align your effort with your energy.</p>
+            {/* Header / Day Centric */}
+            <div className="flex flex-col md:flex-row justify-between items-end mb-10 gap-6">
+                <div>
+                    <h1 className="text-3xl font-medium text-slate-100 mb-2">Today's Flow</h1>
+                    <p className="text-slate-400 text-lg">Clear the path.</p>
+                </div>
 
-                {focusTasks.length > 0 && (
-                    <div className="mt-6 inline-flex items-center gap-3 bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 px-5 py-3 rounded-2xl">
-                        <Zap className="text-yellow-400 fill-yellow-400" size={20} />
-                        <span className="font-bold">Insight:</span>
-                        <span>You have {focusTasks.length} deep work items. Best done before 11 AM.</span>
+                <div className="flex items-center gap-4 bg-slate-900/40 px-6 py-4 rounded-2xl border border-white/5 backdrop-blur-sm">
+                    <div className="text-right">
+                        <div className="text-2xl font-bold text-white leading-none">{dailyLog?.tasks_done || 0}</div>
+                        <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Cleared</div>
                     </div>
-                )}
+                    <div className="w-10 h-10 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-400">
+                        <Sparkles size={20} />
+                    </div>
+                </div>
             </div>
 
-            {/* Input Area */}
-            <div className="bg-slate-900/60 backdrop-blur-xl p-2 rounded-[2rem] shadow-lg border border-white/5 mb-10 flex flex-col md:flex-row gap-2 relative z-20">
-                <form onSubmit={handleAddTask} className="flex-1 flex flex-col md:flex-row gap-2">
+            {/* Input Area - Simplified */}
+            <div className="bg-slate-900/40 p-2 rounded-[2rem] border border-white/5 mb-12 relative z-20">
+                <form onSubmit={handleAddTask} className="flex flex-col md:flex-row gap-2">
                     <input
                         type="text"
                         value={newTask}
                         onChange={(e) => setNewTask(e.target.value)}
-                        placeholder="What needs to be done?"
-                        className="flex-1 px-6 py-4 bg-transparent text-xl font-bold placeholder:text-slate-500 text-slate-200 outline-none"
+                        placeholder="Add a new action..."
+                        className="flex-1 px-8 py-4 bg-transparent text-lg font-medium placeholder:text-slate-600 text-slate-200 outline-none"
                     />
 
-                    <div className="flex bg-white/5 rounded-xl p-1.5 self-center mx-2 border border-white/5">
+                    <div className="flex bg-white/5 rounded-xl p-1 self-center mx-2 border border-white/5">
                         {['focus', 'admin', 'light'].map(level => (
                             <button
                                 key={level}
                                 type="button"
                                 onClick={() => setEnergyLevel(level)}
-                                className={`px-4 py-2 rounded-lg text-sm font-bold capitalize transition-all ${energyLevel === level
+                                className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${energyLevel === level
                                     ? 'bg-indigo-600 text-white shadow-lg'
-                                    : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
+                                    : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
                                     }`}
                             >
                                 {level}
@@ -117,9 +137,10 @@ export default function TasksPage() {
 
                     <button
                         type="submit"
-                        className="bg-slate-100 text-slate-900 px-8 py-3 rounded-2xl font-black hover:bg-white transition-all hover:scale-105 active:scale-95 shadow-lg"
+                        disabled={!newTask.trim()}
+                        className="bg-slate-100 text-slate-900 px-8 py-3 rounded-2xl font-bold hover:bg-white transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:scale-100"
                     >
-                        Execute
+                        Add
                     </button>
                 </form>
             </div>
