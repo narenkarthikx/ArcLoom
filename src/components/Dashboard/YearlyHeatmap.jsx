@@ -1,100 +1,110 @@
 import { motion } from 'framer-motion';
-import { eachDayOfInterval, endOfYear, format, startOfYear } from 'date-fns';
+import { eachDayOfInterval, endOfMonth, endOfYear, format, getDay, isSameDay, startOfMonth, startOfYear, eachMonthOfInterval } from 'date-fns';
 
 export default function YearlyHeatmap({ logs = [] }) {
     const today = new Date();
     const yearStart = startOfYear(today);
     const yearEnd = endOfYear(today);
 
-    // Generate all days for the year
-    const days = eachDayOfInterval({ start: yearStart, end: yearEnd });
+    // Get all months for the year
+    const months = eachMonthOfInterval({ start: yearStart, end: yearEnd });
 
-    // Helper to find log for a specific day
     const getIntensity = (day) => {
-        // Find log matches formatted date string from DB (yyyy-mm-dd)
         const dateStr = format(day, 'yyyy-MM-dd');
         const log = logs.find(l => l.date === dateStr);
-
         if (!log) return 0;
-
-        // Intensity Logic: 
-        // 1: Minimal activity (any task/habit)
-        // 2: Good activity (>2 items)
-        // 3: High activity (>5 items)
         const totalActivity = (log.habits_done || 0) + (log.tasks_done || 0);
-
         if (totalActivity === 0) return 0;
-        if (totalActivity < 3) return 1;
-        if (totalActivity < 6) return 2;
+        if (totalActivity <= 2) return 1;
+        if (totalActivity <= 5) return 2;
         return 3;
     };
 
-    const getColor = (level) => {
+    const getStyle = (level, isFuture) => {
+        if (isFuture) return 'bg-slate-900/40 border border-white/5 opacity-30';
+
         switch (level) {
-            case 0: return 'bg-white/5 data-[future=true]:opacity-20'; // Base empty state
-            case 1: return 'bg-indigo-900/60 border border-indigo-500/30';
-            case 2: return 'bg-indigo-600 border border-indigo-400/50 shadow-[0_0_8px_-2px_rgba(99,102,241,0.6)]';
-            case 3: return 'bg-indigo-400 border border-indigo-200/50 shadow-[0_0_12px_-2px_rgba(99,102,241,1)]';
-            default: return 'bg-white/5';
+            case 0: return 'bg-slate-800/40 border border-white/5 hover:border-white/20';
+            case 1: return 'bg-indigo-900/80 border border-indigo-500/30 shadow-[0_0_8px_-4px_rgba(99,102,241,0.5)]';
+            case 2: return 'bg-violet-600 border border-violet-400/50 shadow-[0_0_12px_-2px_rgba(139,92,246,0.6)]';
+            case 3: return 'bg-cyan-400 border border-cyan-200/50 shadow-[0_0_15px_rgba(34,211,238,0.8)]';
+            default: return 'bg-slate-800/40';
         }
     };
 
-    // Calculate Month Labels positions
-    const months = [];
-    let currentMonth = -1;
-    days.forEach((day, index) => {
-        const month = day.getMonth();
-        if (month !== currentMonth) {
-            // Found a new month, approx calculate grid column position (index / 7)
-            months.push({ name: format(day, 'MMM'), index: Math.floor(index / 7) });
-            currentMonth = month;
-        }
-    });
-
     return (
-        <div className="w-full overflow-x-auto pb-4 custom-scrollbar">
-            <div className="min-w-[800px] select-none">
+        <div className="w-full">
+            <div className="overflow-x-auto pb-4 custom-scrollbar">
+                <div className="flex gap-2 min-w-max pl-2">
 
-                {/* Months Header */}
-                <div className="flex relative h-6 mb-2 text-xs font-bold text-slate-500 tracking-wider">
-                    {months.map((m) => (
-                        // Absolute positioning based on week index roughly maps to grid columns
-                        <div key={m.name} style={{ left: `${m.index * 14}px` }} className="absolute">
-                            {m.name}
-                        </div>
-                    ))}
-                </div>
-
-                <div className="flex gap-2">
-                    {/* Weekday Labels (Mon/Wed/Fri) */}
-                    <div className="flex flex-col gap-[3px] pt-[15px] mr-2">
-                        {['', 'Mon', '', 'Wed', '', 'Fri', ''].map((d, i) => (
-                            <span key={i} className="text-[9px] font-bold text-slate-600 h-[10px] w-6 text-right block leading-[10px]">{d}</span>
-                        ))}
+                    {/* Row Labels (Sticky-ish) */}
+                    <div className="flex flex-col justify-between pt-8 pb-1 pr-2 h-[120px] text-[9px] font-bold text-slate-600 sticky left-0 bg-slate-950/0 backdrop-blur-[1px] z-10">
+                        <span>Mon</span>
+                        <span>Wed</span>
+                        <span>Fri</span>
                     </div>
 
-                    {/* Main Grid: Columns (Weeks) x Rows (Days) */}
-                    <div className="grid grid-flow-col grid-rows-7 gap-[3px]">
-                        {days.map((day) => {
-                            const intensity = getIntensity(day);
-                            const isFuture = day > today;
+                    {/* Months Container */}
+                    <div className="flex gap-8">
+                        {months.map(monthStart => {
+                            const monthEnd = endOfMonth(monthStart);
+                            const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
+
+                            // Calculate offset for Mon-Start week (Mon=0...Sun=6)
+                            // date-fns getDay: Sun=0, Mon=1...Sat=6
+                            // We want Mon=0 to be top row.
+                            // So we map: Mon(1)->0, Tue(2)->1... Sun(0)->6
+                            let startDayIndex = getDay(monthStart);
+                            // Convert to Mon-based index (0-6)
+                            startDayIndex = startDayIndex === 0 ? 6 : startDayIndex - 1;
 
                             return (
-                                <motion.div
-                                    key={day.toISOString()}
-                                    initial={false} // Disable initial animation for massive grid to save perf
-                                    className={`
-                                        w-[10px] h-[10px] rounded-[2px] transition-colors duration-300
-                                        ${getColor(intensity)}
-                                    `}
-                                    // Data attribute for future styling if needed
-                                    data-future={isFuture}
-                                    title={`${format(day, 'MMM do')}: ${intensity > 0 ? 'Active' : 'No Activity'}`}
-                                />
+                                <div key={monthStart.toString()} className="flex flex-col gap-3">
+                                    <span className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">
+                                        {format(monthStart, 'MMM')}
+                                    </span>
+
+                                    <div className="grid grid-rows-7 grid-flow-col gap-1.5">
+                                        {/* Empty spacers for alignment */}
+                                        {Array.from({ length: startDayIndex }).map((_, i) => (
+                                            <div key={`spacer-${i}`} className="w-3 h-3" />
+                                        ))}
+
+                                        {/* Days */}
+                                        {daysInMonth.map(day => {
+                                            const intensity = getIntensity(day);
+                                            const isFuture = day > today;
+                                            return (
+                                                <motion.div
+                                                    key={day.toISOString()}
+                                                    initial={false}
+                                                    whileHover={{ scale: 1.3, zIndex: 10 }}
+                                                    className={`
+                                                        w-3 h-3 rounded-[3px] transition-all duration-300
+                                                        ${getStyle(intensity, isFuture)}
+                                                    `}
+                                                    title={`${format(day, 'MMM do')}: ${intensity}`}
+                                                />
+                                            );
+                                        })}
+                                    </div>
+                                </div>
                             );
                         })}
                     </div>
                 </div>
+            </div>
+
+            {/* Legend */}
+            <div className="flex items-center justify-end gap-3 mt-4 text-[10px] font-medium text-slate-500 px-4">
+                <span>Less</span>
+                <div className="flex gap-1.5">
+                    <div className="w-3 h-3 rounded-[3px] bg-slate-800/40 border border-white/5" />
+                    <div className="w-3 h-3 rounded-[3px] bg-indigo-900/80 border border-indigo-500/30" />
+                    <div className="w-3 h-3 rounded-[3px] bg-violet-600 shadow-[0_0_8px_-2px_rgba(139,92,246,0.6)]" />
+                    <div className="w-3 h-3 rounded-[3px] bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
+                </div>
+                <span>More</span>
             </div>
         </div>
     );
