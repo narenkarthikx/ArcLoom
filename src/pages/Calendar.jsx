@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
-import '../calendar.css';
+import '../styles/calendar.css';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Clock, Trash2, Zap, Coffee, Briefcase, User, Info } from 'lucide-react';
 import { format, isSameDay, parseISO, differenceInMinutes, startOfWeek, endOfWeek, eachDayOfInterval } from 'date-fns';
