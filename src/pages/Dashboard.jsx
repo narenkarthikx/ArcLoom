@@ -1,8 +1,3 @@
-import { motion } from 'framer-motion';
-import { Activity, CheckCircle2, Flame, CalendarClock } from 'lucide-react';
-import YearlyHeatmap from '../components/Dashboard/YearlyHeatmap';
-import StatCard from '../components/Dashboard/StatCard';
-
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Activity, CheckCircle2, Flame, CalendarClock } from 'lucide-react';
@@ -142,7 +137,7 @@ export default function Dashboard() {
                             <Activity size={24} />
                         </div>
                         <div>
-                            <h2 className="text-xl font-bold text-slate-200">2026 Consistency</h2>
+                            <h2 className="text-xl font-bold text-slate-200">{new Date().getFullYear()} Consistency</h2>
                             <p className="text-xs text-slate-500 font-medium">Every block is a day you showed up.</p>
                         </div>
                     </div>

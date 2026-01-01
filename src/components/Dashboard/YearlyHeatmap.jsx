@@ -21,14 +21,14 @@ export default function YearlyHeatmap({ logs = [] }) {
     };
 
     const getStyle = (level, isFuture) => {
-        if (isFuture) return 'bg-slate-900/40 border border-white/5 opacity-30';
+        if (isFuture) return 'bg-slate-800/30 border border-white/5 opacity-60'; // Future: Slightly more visible placeholder
 
         switch (level) {
-            case 0: return 'bg-slate-800/40 border border-white/5 hover:border-white/20';
+            case 0: return 'bg-slate-700/40 border border-white/10 hover:border-white/30'; // Empty past: Much clearer defined box
             case 1: return 'bg-indigo-900/80 border border-indigo-500/30 shadow-[0_0_8px_-4px_rgba(99,102,241,0.5)]';
             case 2: return 'bg-violet-600 border border-violet-400/50 shadow-[0_0_12px_-2px_rgba(139,92,246,0.6)]';
             case 3: return 'bg-cyan-400 border border-cyan-200/50 shadow-[0_0_15px_rgba(34,211,238,0.8)]';
-            default: return 'bg-slate-800/40';
+            default: return 'bg-slate-700/40';
         }
     };
 
