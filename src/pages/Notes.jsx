@@ -97,7 +97,7 @@ export default function NotesPage() {
     );
 
     return (
-        <div className="max-w-7xl mx-auto h-[calc(100vh-6rem)] flex flex-col pb-10">
+        <div className="max-w-7xl mx-auto min-h-[calc(100vh-6rem)] md:h-[calc(100vh-6rem)] flex flex-col pb-10">
             {/* Header */}
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8">
                 <div>
@@ -128,7 +128,7 @@ export default function NotesPage() {
             </div>
 
             {/* Note Grid */}
-            <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+            <div className="flex-1 md:overflow-y-auto pr-2 custom-scrollbar">
                 <div className="columns-1 md:columns-2 lg:columns-3 xl:columns-4 gap-4 space-y-4">
                     <AnimatePresence>
                         {filteredNotes.map((note) => (

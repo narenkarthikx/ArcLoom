@@ -1,8 +1,8 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Calendar, CheckCircle2, Flame, BookOpen, LogOut } from 'lucide-react';
+import { LayoutDashboard, Calendar, CheckCircle2, Flame, BookOpen, LogOut, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
-export default function Sidebar() {
+export default function Sidebar({ isOpen, onClose }) {
     const location = useLocation();
     const { signOut } = useAuth();
 
@@ -21,12 +21,25 @@ export default function Sidebar() {
     };
 
     return (
-        <aside className="fixed left-0 top-0 h-screen w-64 bg-slate-900/60 backdrop-blur-2xl border-r border-white/10 flex flex-col z-50">
-            <div className="p-6">
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent filter drop-shadow-[0_0_10px_rgba(99,102,241,0.3)]">
-                    ArcLoom
-                </h1>
-                <p className="text-xs text-slate-500 mt-1 font-medium tracking-wide">WEAVE YOUR DESTINY</p>
+        <aside className={`
+            fixed left-0 top-0 h-screen w-64 bg-slate-900/80 backdrop-blur-2xl border-r border-white/10 flex flex-col z-50
+            transition-transform duration-300 ease-in-out
+            ${isOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0
+        `}>
+            <div className="p-6 flex justify-between items-start">
+                <div>
+                    <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent filter drop-shadow-[0_0_10px_rgba(99,102,241,0.3)]">
+                        ArcLoom
+                    </h1>
+                    <p className="text-xs text-slate-500 mt-1 font-medium tracking-wide">WEAVE YOUR DESTINY</p>
+                </div>
+                {/* Mobile Close Button */}
+                <button
+                    onClick={onClose}
+                    className="md:hidden p-1 text-slate-400 hover:text-white"
+                >
+                    <X size={24} />
+                </button>
             </div>
 
             <nav className="flex-1 px-3 space-y-1 mt-4">
@@ -36,9 +49,10 @@ export default function Sidebar() {
                         <Link
                             key={link.path}
                             to={link.path}
+                            onClick={() => onClose && onClose()} // Close on mobile nav
                             className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group relative overflow-hidden ${active
-                                    ? 'bg-indigo-600/10 text-indigo-300 border border-indigo-500/20'
-                                    : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
+                                ? 'bg-indigo-600/10 text-indigo-300 border border-indigo-500/20'
+                                : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
                                 }`}
                         >
                             {active && (

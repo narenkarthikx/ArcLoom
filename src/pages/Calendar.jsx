@@ -94,7 +94,7 @@ export default function CalendarPage() {
     const isOverCapacity = weeklyHours > capacityLimit;
 
     return (
-        <div className="h-[calc(100vh-6rem)] flex flex-col xl:flex-row gap-8 overflow-hidden">
+        <div className="min-h-[calc(100vh-6rem)] xl:h-[calc(100vh-6rem)] flex flex-col xl:flex-row gap-8 xl:overflow-hidden pb-20 xl:pb-0">
 
             {/* LEFT: Calendar Strategy Card */}
             <motion.div
