@@ -10,7 +10,7 @@ export default function DashboardLayout() {
     return (
         <InteractiveBackground>
             {/* Mobile Header */}
-            <div className="md:hidden flex items-center justify-between p-4 bg-slate-900/80 backdrop-blur-md sticky top-0 z-40 border-b border-white/5">
+            <div className="lg:hidden flex items-center justify-between p-4 bg-slate-900/80 backdrop-blur-md sticky top-0 z-40 border-b border-white/5">
                 <div className="flex items-center gap-2">
                     {/* Compact Logo for Mobile Header */}
                     <span className="text-xl font-bold text-white tracking-tight">ArcLoom</span>
@@ -28,13 +28,13 @@ export default function DashboardLayout() {
             {/* Mobile Overlay Backdrop */}
             {isSidebarOpen && (
                 <div
-                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden"
+                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
                     onClick={() => setIsSidebarOpen(false)}
                 />
             )}
 
-            <main className="md:ml-64 w-full min-h-screen relative z-10">
-                <div className="p-4 md:p-8 max-w-7xl mx-auto">
+            <main className="lg:ml-64 w-full min-h-screen relative z-10">
+                <div className="p-4 lg:p-8 max-w-7xl mx-auto">
                     <Outlet />
                 </div>
             </main>

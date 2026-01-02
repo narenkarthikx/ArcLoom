@@ -16,7 +16,7 @@ export default function InteractiveBackground({ children }) {
             </div>
 
             {/* Content Wrapper */}
-            <div className="relative z-10 flex min-h-screen">
+            <div className="relative z-10 min-h-screen">
                 {children}
             </div>
         </div>

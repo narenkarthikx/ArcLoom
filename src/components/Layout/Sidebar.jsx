@@ -24,7 +24,7 @@ export default function Sidebar({ isOpen, onClose }) {
         <aside className={`
             fixed left-0 top-0 h-screen w-64 bg-slate-900/80 backdrop-blur-2xl border-r border-white/10 flex flex-col z-50
             transition-transform duration-300 ease-in-out
-            ${isOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0
+            ${isOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0
         `}>
             <div className="p-6 flex justify-between items-start">
                 <div>
@@ -36,7 +36,7 @@ export default function Sidebar({ isOpen, onClose }) {
                 {/* Mobile Close Button */}
                 <button
                     onClick={onClose}
-                    className="md:hidden p-1 text-slate-400 hover:text-white"
+                    className="lg:hidden p-1 text-slate-400 hover:text-white"
                 >
                     <X size={24} />
                 </button>
