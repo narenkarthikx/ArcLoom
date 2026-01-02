@@ -1,32 +1,61 @@
 # ArcLoom 🧶
 
-**ArcLoom** is a unified personal productivity platform that weaves together your calendar, tasks, habits, and notes into a single, beautiful interface.
+**Weave your days into a masterpiece.**
 
-## Features
+ArcLoom is a day-centric life tracker designed to focus on *today's* rhythm. Instead of pressuring you with endless streaks and backlogs, it emphasizes daily self-maintenance, consistent rituals, and clearing the mind.
+---
 
-- **📊 Dashboard**: At-a-glance view of your day, priority tasks, and habit streaks.
-- **📅 Calendar**: Scheduler to manage your events and meetings.
-- **✅ Tasks**: Task manager with smart prioritization and due dates.
-- **🔥 Habits**: Track your daily habits with heatmap visualization (GitHub style).
-- **📝 Notes**: Clean, distraction-free notes editor.
-- **🔐 Secure**: Full authentication powered by Supabase.
+## ✨ Core Philosophy
 
-## Tech Stack
+> "Every block is a day you showed up."
 
-- **Frontend**: React, Vite, Tailwind CSS, Framer Motion
-- **Backend**: Supabase (PostgreSQL, Auth)
-- **Icons**: Lucide React
+ArcLoom moves away from traditional productivity tools that measure *performance*. Instead, it measures *presence*.
+*   **Day-Centric**: Every action (Task or Habit) contributes to your "Daily Log."
+*   **Clear The Path**: Tasks are meant to be "cleared" from the day, not hoarded.
+*   **Gentle Consistency**: The consistency heatmap visualizes your year in a satisfying, pressure-free way.
 
-## Setup Guide
+---
+
+## 🚀 Features
+
+### **🔮 Dashboard**
+*   **Year Consistency Heatmap**: A beautiful, GitHub-style contribution graph that visualizes your daily activity intensity.
+*   **Live Stats**: Instant view of active rituals, cleared tasks, and activity score.
+
+### **☀️ Rituals (Habits)**
+*   **Today's Focus**: Visualizes habits as "Rituals" to be performed today.
+*   **Context Aware**: Categorized by Morning, Afternoon, and Evening.
+*   **Optimistic UI**: Instant updates as you check off rituals.
+
+### **🌊 Flow (Tasks)**
+*   **Energy-Based Sorting**: Organize tasks by energy level (High, Medium, Low) rather than just time.
+*   **Clear Goals**: "Clear the day" counter encourages finishing what you started.
+
+### **📅 Calendar & Notes**
+*   **Time Blocking**: simple calendar interface for deep work sessions.
+*   **Thought Capture**: Minimalist notes for frictionless writing.
+
+---
+
+## 🛠️ Tech Stack
+
+*   **Frontend**: React (Vite)
+*   **Styling**: Tailwind CSS + Framer Motion (for smooth micro-interactions)
+*   **Icons**: Lucide React
+*   **Backend / DB**: Supabase (PostgreSQL)
+*   **State Management**: React Hooks + Optimistic Local State
+
+---
+
+## ⚡ Getting Started
 
 ### 1. Prerequisites
-- Node.js installed
-- A Supabase account
+*   Node.js (v18+)
+*   A Supabase Project
 
-### 2. Installation
+### 2. Implementation
 
-Clone the repo and install dependencies:
-
+Clone the repository:
 ```bash
 git clone https://github.com/narenkarthikx/ArcLoom.git
 cd ArcLoom
@@ -35,34 +64,36 @@ npm install
 
 ### 3. Environment Variables
 
-Create a `.env.local` file in the root directory:
-
-```bash
-cp .env.example .env.local
-```
-
-Add your Supabase credentials to `.env.local`:
-
+Create a `.env.local` file in the root:
 ```env
 VITE_SUPABASE_URL=your_project_url
 VITE_SUPABASE_ANON_KEY=your_anon_key
 ```
 
-### 4. Database Setup
+### 4. Database Schema
 
-1. Go to your **Supabase Dashboard** -> **SQL Editor**.
-2. Open the `supabase_schema.sql` file located in this project.
-3. Copy the entire content and paste it into the SQL Editor.
-4. Click **Run** to create all tables (`tasks`, `habits`, `habit_logs`, `notes`, `events`) and RLS policies.
+Run the provided SQL script in your Supabase SQL Editor to verify the schema:
+*   Locate: `supabase_schema.sql`
+*   Run the script to create `daily_log`, `habits`, `tasks`, etc.
 
-### 5. Run the App
+### 5. Ignite
 
 ```bash
 npm run dev
 ```
 
-Open your browser to the local URL (usually `http://localhost:5173`).
+---
 
-## License
+## 📂 Project Structure
 
-MIT
+```text
+src/
+├── components/      # Reusable UI Blocks (Heatmap, StatCards)
+├── lib/             # API & Supabase Clients
+├── pages/           # Core Views (Dashboard, Habits, Tasks)
+├── styles/          # Global CSS & Tailind directives
+└── App.jsx          # Routing & Layout Root
+```
+
+---
+
