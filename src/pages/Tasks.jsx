@@ -88,10 +88,10 @@ export default function TasksPage() {
     const completedTasks = tasks.filter(t => t.is_completed);
 
     return (
-        <div className="max-w-6xl mx-auto min-h-[calc(100vh-6rem)] pb-20">
+        <div className="max-w-6xl min-h-[calc(100vh-6rem)] pb-20">
 
             {/* Header / Day Centric */}
-            <div className="flex flex-col md:flex-row justify-between items-end mb-10 gap-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-6">
                 <div>
                     <h1 className="text-3xl font-medium text-slate-100 mb-2">Today's Flow</h1>
                     <p className="text-slate-400 text-lg">Clear the path.</p>

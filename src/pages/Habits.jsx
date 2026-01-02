@@ -108,7 +108,7 @@ export default function HabitsPage() {
     const greeting = hour < 12 ? 'Good Morning' : hour < 18 ? 'Good Afternoon' : 'Good Evening';
 
     return (
-        <div className="max-w-2xl mx-auto space-y-10 pb-32">
+        <div className="max-w-2xl space-y-10 pb-32">
 
             {/* Day-Centric Header */}
             <div className="bg-slate-900/40 p-8 rounded-[2rem] border border-white/5 relative overflow-hidden">

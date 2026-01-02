@@ -11,16 +11,16 @@ export default function DashboardLayout() {
         <InteractiveBackground>
             {/* Mobile Header */}
             <div className="lg:hidden flex items-center justify-between p-4 bg-slate-900/80 backdrop-blur-md sticky top-0 z-40 border-b border-white/5">
-                <div className="flex items-center gap-2">
-                    {/* Compact Logo for Mobile Header */}
-                    <span className="text-xl font-bold text-white tracking-tight">ArcLoom</span>
-                </div>
                 <button
                     onClick={() => setIsSidebarOpen(true)}
                     className="p-2 text-slate-300 hover:text-white bg-white/5 rounded-lg active:scale-95 transition-all"
                 >
                     <Menu size={24} />
                 </button>
+                <div className="flex items-center gap-2">
+                    {/* Compact Logo for Mobile Header */}
+                    <span className="text-xl font-bold text-white tracking-tight">ArcLoom</span>
+                </div>
             </div>
 
             <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
@@ -34,7 +34,7 @@ export default function DashboardLayout() {
             )}
 
             <main className="lg:ml-64 w-full min-h-screen relative z-10">
-                <div className="p-4 lg:p-8 max-w-7xl mx-auto">
+                <div className="p-4 lg:p-8 max-w-7xl">
                     <Outlet />
                 </div>
             </main>
